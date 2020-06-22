@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(simple)
+project(hello_world)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -104,7 +104,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES simple
+#  LIBRARIES hello_world
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
@@ -122,7 +122,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/simple.cpp
+#   src/${PROJECT_NAME}/hello_world.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -133,7 +133,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/simple_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/hello_world_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -197,10 +197,29 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_simple.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_hello_world.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+catkin_package(
+ INCLUDE_DIRS include
+ LIBRARIES hello_world
+#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  DEPENDS system_lib
+)
+
+include_directories(include ${catkin_INCLUDE_DIRS})
+
+add_executable(talker src/talker.cpp)
+target_link_libraries(talker ${catkin_LIBRARIES})
+#add_dependencies(talker hello_world_generate_messages_cpp)
+
+add_executable(talkerInteger src/talkerInteger.cpp)
+target_link_libraries(talkerInteger ${catkin_LIBRARIES})
+#add_dependencies(talkerInteger hello_world_generate_messages_cpp)
+
