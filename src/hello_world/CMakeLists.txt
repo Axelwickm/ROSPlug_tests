@@ -186,11 +186,9 @@ include_directories(
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+#install(FILES src/file.txt
+#   DESTINATION ${catkin_LIBRARIES}
+#)
 
 #############
 ## Testing ##
@@ -222,4 +220,8 @@ target_link_libraries(talker ${catkin_LIBRARIES})
 add_executable(talkerInteger src/talkerInteger.cpp)
 target_link_libraries(talkerInteger ${catkin_LIBRARIES})
 #add_dependencies(talkerInteger hello_world_generate_messages_cpp)
+
+
+add_executable(morse src/morse.cpp)
+target_link_libraries(morse ${catkin_LIBRARIES})
 
