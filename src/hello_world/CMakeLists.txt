@@ -225,3 +225,6 @@ target_link_libraries(talkerInteger ${catkin_LIBRARIES})
 add_executable(morse src/morse.cpp)
 target_link_libraries(morse ${catkin_LIBRARIES})
 
+add_executable(summed_sinusoids src/summed_sinusoids.cpp)
+target_link_libraries(summed_sinusoids ${catkin_LIBRARIES})
+
