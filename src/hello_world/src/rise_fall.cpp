@@ -5,11 +5,11 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "talker");
+  ros::init(argc, argv, "rise_fall");
 
   ros::NodeHandle n;
 
-  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("talkerInteger", 1000);
+  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("rise_fall", 1000);
 
   ros::Rate loop_rate(10);
 
@@ -34,5 +34,6 @@ int main(int argc, char **argv)
     ++count;
   }
 
+  chatter_pub.shutdown();
   return 0;
 }

@@ -12,12 +12,12 @@ int main(int argc, char **argv)
 
   ros::Publisher chatter_pub = n.advertise<std_msgs::Float32>("summed_sinusoids", 1000);
 
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(30);
 
   int count = 0;
   while (ros::ok())
   {
-    float t = count / 10.f;
+    float t = count / 30.f;
     float y = sinf(t) + sinf(3*t)/3 + sinf(5*t)/5 + sinf(7*t)/7 + sinf(9*t)/9;
     std_msgs::Float32 msg;
     msg.data = y;
@@ -32,5 +32,6 @@ int main(int argc, char **argv)
     count++;
   }
 
+  chatter_pub.shutdown();
   return 0;
 }

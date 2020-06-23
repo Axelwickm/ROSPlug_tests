@@ -32,5 +32,6 @@ int main(int argc, char **argv)
     ++count;
   }
 
+  chatter_pub.shutdown();
   return 0;
 }

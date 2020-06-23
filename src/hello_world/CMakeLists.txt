@@ -217,8 +217,8 @@ add_executable(talker src/talker.cpp)
 target_link_libraries(talker ${catkin_LIBRARIES})
 #add_dependencies(talker hello_world_generate_messages_cpp)
 
-add_executable(talkerInteger src/talkerInteger.cpp)
-target_link_libraries(talkerInteger ${catkin_LIBRARIES})
+add_executable(rise_fall src/rise_fall.cpp)
+target_link_libraries(rise_fall ${catkin_LIBRARIES})
 #add_dependencies(talkerInteger hello_world_generate_messages_cpp)
 
 
