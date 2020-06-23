@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(hello_world)
+project(wsm_msgs)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -206,7 +206,7 @@ include_directories(
 
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES hello_world
+ LIBRARIES wsm_msgs
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
