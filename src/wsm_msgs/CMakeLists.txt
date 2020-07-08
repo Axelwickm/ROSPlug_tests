@@ -52,6 +52,7 @@ add_message_files(
   FILES
   City.msg
   Cities.msg
+  PublishTest.msg
 )
 
 ## Generate services in the 'srv' folder

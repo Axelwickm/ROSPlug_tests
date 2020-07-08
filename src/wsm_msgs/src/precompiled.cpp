@@ -28,9 +28,10 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
+  //ros::Publisher chatter_pub = n.advertise<wsm_msgs::City>("city", 5);
   ros::Publisher chatter_pub = n.advertise<wsm_msgs::Cities>("cities", 5);
 
-  ros::Rate loop_rate(0.2);
+  ros::Rate loop_rate(0.8);
 
   int count = 0;
   auto it = countries.begin(); // Not in instantiated order
@@ -38,6 +39,8 @@ int main(int argc, char **argv)
   {
     wsm_msgs::Cities msg;
     msg.header.stamp = ros::Time::now();
+    msg.header.seq = count;
+    msg.header.frame_id = "_";
     msg.country = it->first;
     for (auto &city : it->second){
         wsm_msgs::City cityMsg;
@@ -45,9 +48,16 @@ int main(int argc, char **argv)
         cityMsg.population = city.population;
         cityMsg.by_sea = city.by_sea;
         msg.cities.push_back(cityMsg);
+        if (false && count % 3 == 0){
+            chatter_pub.publish(cityMsg);
+            ROS_INFO("%d", count);
+            break;
+        }
+
     }
 
     ROS_INFO("%d - %s (%zu)", count, it->first.c_str(), msg.cities.size());
+
 
     chatter_pub.publish(msg);
 
