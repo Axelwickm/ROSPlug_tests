@@ -1,4 +1,4 @@
 int32 answer
 bool cool
-string whatDoYouWant
+string whatDoWeWant
 float32 golden_ratio

@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     std_msgs::Float32 msg;
     msg.data = y;
 
-    ROS_INFO("%d - %f", count, msg.data);
+    ROS_INFO("%d - %ju (0x%jx)", count, msg.data);
 
     chatter_pub.publish(msg);
 
