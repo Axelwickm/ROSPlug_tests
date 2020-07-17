@@ -7,16 +7,17 @@ import time
 from wsm_simulations.msg import PendelumState
 from wsm_simulations.msg import PendelumMotor
 
-qtable_shape = (3, 15, 15, )
+qtable_shape = (9, 15, 15, )
 plot_update_interval = 0.5
 
 qtable = np.empty(qtable_shape, dtype=np.float32)
 qtable[:] = np.nan
 
-qpolicy = np.empty(qtable_shape)
+qpolicy = np.empty(qtable_shape, dtype=np.float32)
 qpolicy[:] = np.nan
 
 state_commonality = np.zeros(qtable_shape, dtype=np.float32)
+recent_states = np.zeros(qtable_shape, dtype=np.float32)
 
 last_state = ()
 last_plot_time = time.time()
@@ -24,7 +25,7 @@ last_plot_time = time.time()
 count = 0
 
 def update_plot(pendelum_motor):
-    global last_state, last_plot_time, plot_update_interval, count, state_commonality
+    global last_state, last_plot_time, plot_update_interval, count, state_commonality, recent_states
 
     velocity = pendelum_motor.state[0]
     angular_velocity = pendelum_motor.state[1]
@@ -34,13 +35,16 @@ def update_plot(pendelum_motor):
         qtable[last_state] = pendelum_motor.qvalue
     last_state = (velocity, angular_velocity, angle)
 
-    if np.isnan(qpolicy[velocity, angle, angular_velocity]):
-        qpolicy[velocity, angular_velocity, angle] = pendelum_motor.motor_response
+    last_qpolicy = qpolicy[last_state]
+    if np.isnan(last_qpolicy):
+        qpolicy[last_state] = pendelum_motor.motor_response
     else:
-        qpolicy[velocity, angular_velocity, angle] = qpolicy[velocity, angle, angular_velocity]*0.9 + pendelum_motor.motor_response*0.1
+        qpolicy[last_state] = last_qpolicy*0.85 + pendelum_motor.motor_response*0.15
 
-    state_commonality[velocity, angular_velocity, angle] += 1
-    state_commonality *= 0.9995
+    state_commonality[last_state] += 1
+    state_commonality *= 0.99999
+    recent_states[last_state] = 1
+    recent_states *= 0.8
 
     if plot_update_interval < time.time()-last_plot_time:
         if update_plot.first_time:
@@ -56,39 +60,41 @@ def update_plot(pendelum_motor):
             update_plot.im_qpolicy = update_plot.ax_qpolicy.imshow(np.hstack(qpolicy),
                                                                  origin='bottom',
                                                                  #aspect='auto',
-                                                                 vmin=-4.0,
-                                                                 vmax=4.0,
-                                                                 cmap='YlGnBu')
+                                                                 vmin=-0.8,
+                                                                 vmax=0.8,
+                                                                 cmap='RdBu')
 
             update_plot.im_common = update_plot.ax_commonality.imshow(np.hstack(state_commonality),
                                                                    origin='bottom',
                                                                    #aspect='auto',
                                                                    vmin=0.0,
-                                                                   vmax=1.0,
+                                                                   vmax=1.5,
                                                                    cmap='magma')
 
             update_plot.ax_qtable.set_title("Q_table")
             update_plot.ax_qpolicy.set_title("Q_policy")
             update_plot.ax_commonality.set_title("Commonality")
-            update_plot.ax_commonality.set_xlabel("angle")
-            update_plot.ax_qtable.set_ylabel("angular_velocity")
+            update_plot.ax_commonality.set_xlabel("velocity[angle]")
+            update_plot.ax_qpolicy.set_ylabel("angular_velocity")
 
 
         not_nans = np.where(np.isnan(qtable) == False)
 
         mqtable = np.ma.masked_where(np.isnan(qtable), qtable)
-        mqtable = qtable/np.std(qtable[not_nans])
         mqtable = mqtable-np.mean(mqtable[not_nans])
+        mqtable = mqtable/np.std(mqtable[not_nans])
 
-        mqpolicy = np.ma.masked_where(np.isnan(qpolicy), qpolicy)
-        mqpolicy = qpolicy/np.std(qpolicy[not_nans])
+        mcommonality = np.log(state_commonality+1)
+        mcommonality = mcommonality/np.max(mcommonality)
+
+        mqpolicy = np.ma.masked_where(np.isnan(qpolicy), qpolicy)\
+                   *(mcommonality+0.05)
         mqpolicy = mqpolicy-np.mean(mqpolicy[not_nans])
-
-        mcommonality = state_commonality.astype(np.float32)/np.max(state_commonality)
+        mqpolicy = mqpolicy/(np.max(mqpolicy[not_nans])-np.min(mqpolicy[not_nans]))
 
         update_plot.im_qtable.set_data(np.hstack(mqtable))
         update_plot.im_qpolicy.set_data(np.hstack(mqpolicy))
-        update_plot.im_common.set_data(np.hstack(mcommonality))
+        update_plot.im_common.set_data(np.hstack(mcommonality+recent_states))
 
         if count%50 == 0:
             plt.savefig("./qtable_animation/"+str(count)+".jpg")
