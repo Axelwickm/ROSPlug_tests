@@ -45,16 +45,14 @@ private:
 
 
     void callback(const boost::shared_ptr<const wsm_simulations::PendelumState> &msg){
-        const float position = msg->position;
+        float velocity = msg->velocity;
+        float angular_velocity = msg->angular_velocity;
         const float angle = remainderf(msg->angle, 2.0f*M_PI);
+        const float position = msg->position;
         double delta_time = 0;
         if (count != 0){
             delta_time = msg->delta_time;
         }
-
-        float velocity = (position - last_position) / (delta_time == 0 ? 1 : delta_time);
-        float delta_angle = remainderf(last_angle-angle, 2.0f*M_PI);
-        float angular_velocity = delta_angle / (delta_time == 0 ? 1 : delta_time);
 
         const std::vector<float> raw_state{velocity, angular_velocity, angle};
         const QTable::State &state = qtable.get_state(raw_state);
@@ -62,7 +60,7 @@ private:
         float r = 0;
         if (count != 0){
             r = reward(angle, velocity, angular_velocity);
-            qvalue = qtable.update_action(last_action, r, state);
+            qvalue = qtable.update_action(r, state);
             //printf("Got reward %f, qvalue is %f\n", r, qvalue);
         }
 
@@ -81,7 +79,7 @@ private:
         printf("Explored %u / %I32u\n", qtable.explored.size(), qtable.max_states);
         const float motor_response = std::get<0>(action);
         wsm_simulations::PendelumMotor response;
-        response.motor_response = motor_response;
+        response.motor_response = motor_response+0.00001;
         response.reward = r;
         response.qvalue = qvalue;
         response.state = {state[0], state[1], state[2]};
@@ -109,8 +107,8 @@ private:
 
     inline float reward(float angle, float velocity, float angular_velocity){
         //angle = remainderf(angle + 3.0f*M_PI, 2.0f*M_PI);
-        float r = -powf(fabs(angle)*0.5, 1.2f) - 0.3f*logf(fabs(angular_velocity)+1.0) - 0.05*fabs(velocity);
-        //return fabs(angular_velocity);
+        //float r = -powf(fabs(angle)*4.0, 0.4f) - 0.1f*logf(fabs(angular_velocity)+1.0) - 0.05*fabs(velocity);
+        float r = -1.f/(1.f+expf(4.f-20.f*fabs(angle)));
         return fmaxf(fminf(r, 100), -100.f);
     }
 };
@@ -173,7 +171,7 @@ int main(int argc, char **argv)
                 {15, -15, 15},        // AngularVelocity
                 {15, -M_PI, M_PI},   // Angle
             };
-            QTable::ActionsSettings actions = {3, -10, 10};
+            QTable::ActionsSettings actions = {3, -14, 14};
             QTable qtable(state_settings, actions, 0.05, 0.001, 0.99);
             controller.reset(new Controller(n, qtable, save_to_file, filename, saving_interval));
         }

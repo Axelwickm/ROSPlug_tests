@@ -18,7 +18,7 @@ struct QTable {
     StateSettings state_settings;
     ActionsSettings action_settings;
     std::map<State, ActionSpace> qtable;
-    std::set<State> explored; // This includes action (State+Action)
+    std::map<State, unsigned> explored; // This includes action (State+Action)
     unsigned long int update_count = 0;
 
     unsigned max_states = 1;
@@ -27,6 +27,9 @@ struct QTable {
     float learning_rate;
     float epsilon;
     float discount_factor;
+
+    bool first = true;
+    QTable::ActionSpace::iterator last_action;
 
     QTable(StateSettings state_settings, ActionsSettings action_settings,
             float learning_rate, float epsilon, float discount_factor):
@@ -56,32 +59,53 @@ struct QTable {
             }
         }
 
-        for (const auto &a : action_space_it->second){
-            printf("%f ", a);
-        }
-        printf("\n"); fflush(stdout);
         ActionSpace &action_space = action_space_it->second;
         unsigned action;
         if (new_state || real_distr(random_generator) < epsilon){ // Choose random action
             action = random_action(random_generator);
         }
         else { // Randomly choose the max value if it isn't nan
-            ActionSpace::const_iterator &action_it = std::max_element(action_space.begin(), action_space.end());
-            const float max_value = *action_it;
-            if (std::isnan(max_value)){
-                action = random_action(random_generator);
+            bool found_nonnan = false;
+            unsigned max_ind; float max_value = -std::numeric_limits<float>::infinity();
+            for (unsigned int i = 0; i < action_count; i++){
+                if (!std::isnan(max_value) && max_value < action_space[i]){
+                    found_nonnan = true;
+                    max_ind = i; max_value = action_space[i];
+                }
+            }
+
+            if (found_nonnan) {
+                action = max_ind;
             }
             else {
-                action = action_it - action_space.begin();
+                action = random_action(random_generator);
             }
         }
         std::vector<unsigned> full_state = state;
         full_state.push_back(action);
-        explored.insert(full_state);
+        if (!explored.insert(std::make_pair(full_state, 0)).second){
+            explored.at(full_state) += 1;
+        }
+
+        /*printf("Full state: ");
+        for (const auto &fs : full_state){
+            printf("%d ", fs);
+        }
+        printf("\n");*/
+
+        first = false;
+        last_action = action_space.begin()+action;
         return {raw_action(action), action_space.begin()+action};
     }
 
-    float update_action(ActionSpace::iterator &last_action, const float &reward, const State &state){
+    void reset(){
+        first = false;
+    }
+
+    float update_action(const float &reward, const State &state){
+        if (first){
+            return std::numeric_limits<float>::quiet_NaN();
+        }
         update_count++;
         std::map<State, ActionSpace>::iterator action_space_it = qtable.find(state);
         float max_q = 0;
@@ -156,8 +180,9 @@ struct QTable {
         // Write explored
         uint32_t explored_count = explored.size();
         f.write((char*) &explored_count, sizeof(uint32_t));
-        for (const State &state : explored){
-            f.write((char*) state.data(), sizeof(unsigned)*(state_settings.size()+1)); // +1 because this includes the action
+        for (const auto &state : explored){
+            f.write((char*) state.first.data(), sizeof(unsigned)*(state_settings.size()+1)); // +1 because this includes the action
+            f.write((char*) &state.second, sizeof(unsigned));
         }
 
         // Write qtable
@@ -211,7 +236,7 @@ struct QTable {
         qtable.update_count = update_count;
 
         // Read explored
-        std::set<State> &explored = qtable.explored;
+        std::map<State, unsigned> &explored = qtable.explored;
         uint32_t explored_count;
         f.read((char*) &explored_count, sizeof(uint32_t));
         for (uint32_t i = 0; i < explored_count; i++) {
@@ -219,7 +244,9 @@ struct QTable {
             for (unsigned j = 0; j < state_settings.size()+1; j++){
                 f.read((char*) &state[j], sizeof(unsigned));
             }
-            explored.insert(state);
+            unsigned c;
+            f.read((char*) &c, sizeof(unsigned));
+            explored.insert(std::make_pair(state, c));
             if (int(f.tellg()) == -1){
                 throw std::runtime_error("Error reading file. Make sure stream open in binary mode.");
             }
