@@ -20,11 +20,13 @@
 
 extern "C" {
     //EXPORT void* QTableConstructor(WSM_StateSettings* wsm_action_setting); // FIXME
-    EXPORT void* QTableConstructor(double learning_rate, double epsilon, double discount_factor);
+    EXPORT void* QTableConstructor(const char* filepath);
     EXPORT void QTableDestructor(void* object);
+    EXPORT void save(void* object, const char* filepath_chars);
 
     EXPORT double choose_action(void* object, double* raw_state, size_t state_dimensions, double reward,
                 double learning_rate, double epsilon, double discount_factor);
+    EXPORT double get_qvalue(void* object);
 
     // Will not update from last action
     EXPORT void reset(void* object);

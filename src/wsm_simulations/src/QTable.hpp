@@ -30,6 +30,7 @@ struct QTable {
 
     bool first = true;
     QTable::ActionSpace::iterator last_action;
+    float average_reward;
 
     QTable(StateSettings state_settings, ActionsSettings action_settings,
             float learning_rate, float epsilon, float discount_factor):
@@ -46,6 +47,7 @@ struct QTable {
         static std::mt19937 random_generator{std::random_device{}()};
         static const std::uniform_real<float> real_distr(0, 1);
         static const std::uniform_int_distribution<unsigned> random_action(0, action_count-1);
+        static float first_random = real_distr(random_generator);
 
         std::map<State, ActionSpace>::iterator action_space_it = qtable.find(state);
         bool new_state = false;
@@ -99,13 +101,20 @@ struct QTable {
     }
 
     void reset(){
-        first = false;
+        first = true;
     }
 
     float update_action(const float &reward, const State &state){
-        if (first){
-            return std::numeric_limits<float>::quiet_NaN();
+        if (update_count == 0){
+            average_reward = reward;
         }
+
+        if (first){
+            return reward;
+        }
+
+        average_reward = average_reward*0.9999 + reward*0.0001;
+
         update_count++;
         std::map<State, ActionSpace>::iterator action_space_it = qtable.find(state);
         float max_q = 0;
@@ -114,7 +123,7 @@ struct QTable {
             ActionSpace::const_iterator &action_it = std::max_element(action_space.begin(), action_space.end());
             max_q = std::isnan(*action_it) ? 0 : *action_it;
         }
-        *last_action = std::isnan(*last_action) ? 0 : *last_action;
+        *last_action = std::isnan(*last_action) ? reward : *last_action;
         *last_action += learning_rate*(reward + discount_factor*max_q - *last_action);
         return *last_action;
     }
@@ -188,15 +197,11 @@ struct QTable {
         // Write qtable
         uint32_t qtable_entry_count = qtable.size();
         f.write((char*) &qtable_entry_count, sizeof(uint32_t));
-        unsigned cc = 0;
         for (const auto &p : qtable){
             const State &state = p.first;
             const ActionSpace &action_space = p.second;
             f.write((char*) state.data(), state.size()*sizeof(unsigned));
             f.write((char*) action_space.data(), action_space.size()*sizeof(float));
-            if (cc < 2000000000)
-                printf("QT WRITE POSITION %d\n", int(f.tellp()));
-            cc++;
         }
     }
 
@@ -290,6 +295,7 @@ struct QTable {
         }
         printf("------------\n");
         printf("Updated %d times\n", update_count);
+        printf("Average reward: %f\n", average_reward);
         printf("Explored states: %d/%d\n", explored.size(), max_states);
         printf("States in qtable %d/%d\n", qtable.size(), max_states/action_count);
         printf("------------------------\n\n");
