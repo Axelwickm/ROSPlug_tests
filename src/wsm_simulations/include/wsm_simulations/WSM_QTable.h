@@ -10,7 +10,6 @@
 #define EXPORT __attribute__((visibility("default")))
 #endif
 
-
 /*struct WSM_StateSettings {
     double minimum;
     double maximum;
@@ -23,6 +22,11 @@ extern "C" {
     EXPORT void* QTableConstructor(const char* filepath);
     EXPORT void QTableDestructor(void* object);
     EXPORT void save(void* object, const char* filepath_chars);
+    EXPORT void allocate_EA(void* object);
+    EXPORT int get_QTable_data_size(void* object);
+    EXPORT int get_low_int_EA(void* object);
+    EXPORT int get_high_int_EA(void* object);
+    EXPORT void set_array_data(void* object, int table_id);
 
     EXPORT double choose_action(void* object, double* raw_state, size_t state_dimensions, double reward,
                 double learning_rate, double epsilon, double discount_factor);

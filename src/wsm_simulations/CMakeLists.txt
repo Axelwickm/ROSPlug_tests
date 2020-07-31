@@ -51,6 +51,7 @@ add_message_files(
    FILES
    PendelumState.msg
    PendelumMotor.msg
+   QTable.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -159,6 +160,7 @@ target_link_libraries(${PROJECT_NAME}_QTable ${catkin_LIBRARIES})
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   scripts/plot_pendelum_qtable.py
+  scripts/plot_qtable.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

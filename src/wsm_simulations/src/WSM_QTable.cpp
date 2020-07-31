@@ -2,6 +2,29 @@
 #include "QTable.hpp"
 
 #include <cmath>
+#include <vector>
+#include <map>
+
+// This is needed in order to read and write betwen different DLLs
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    #include <windows.h>
+    HANDLE ProcessHeapHandle = GetProcessHeap();
+    #define ROSPLUG_ALLOC(X) HeapAlloc(ProcessHeapHandle, HEAP_GENERATE_EXCEPTIONS, (X))
+    #define ROSPLUG_FREE(X) HeapFree(ProcessHeapHandle, 0, (X))
+#else
+    #define ROSPLUG_ALLOC(X) malloc((X))
+    #define ROSPLUG_FREE(X) free((X))
+#endif
+
+typedef struct {
+    void* a;
+    std::size_t s;
+} wsm_external_array_t;
+
+std::map<void*, wsm_external_array_t*> qtable_external_arrays;
+
+#include <chrono>
+#include <thread>
 
 extern "C" {
     EXPORT void* QTableConstructor(const char* filepath_chars){
@@ -29,6 +52,8 @@ extern "C" {
             qtable = new QTable(QTable::read(file));
             qtable->print();
         }
+        printf("Constructed qtable\n"); fflush(stdout);
+        std::this_thread::sleep_for(std::chrono::milliseconds(750));
         return static_cast<void*>(qtable);
     }
 
@@ -47,6 +72,88 @@ extern "C" {
         qtable->print();
         fflush(stdout);
     }
+
+    EXPORT void allocate_EA(void* object){ // EA = External Array
+        try {
+            QTable* qtable = static_cast<QTable*>(object);
+            std::size_t s = get_QTable_data_size(object);
+            void* ea_memory = ROSPLUG_ALLOC(s);
+            auto wsm_array = static_cast<wsm_external_array_t*>(ROSPLUG_ALLOC(sizeof(wsm_external_array_t)));
+            wsm_array->a = ea_memory;
+            wsm_array->s = s;
+            printf("Allocated external array for qtable %p, allocated block %p, size %d\n",
+                   wsm_array, wsm_array->a, wsm_array->s);
+            qtable_external_arrays.insert(std::make_pair(object, wsm_array));
+        } catch (const std::exception e){
+            fprintf(stderr, "Allocate external array failed: %s", e.what());
+            fflush(stderr);
+            throw;
+        }
+    }
+
+    EXPORT int get_QTable_data_size(void* object){
+        QTable* qtable = static_cast<QTable*>(object);
+        return (1+qtable->explored.size())*(4+qtable->state_settings.size())*sizeof(int32_t);
+    }
+
+    EXPORT int get_low_int_EA(void* object){
+        wsm_external_array_t *wsm_array = qtable_external_arrays.at(object);
+        uint64_t int_ptr = reinterpret_cast<uint64_t>(wsm_array);
+        int low;
+        std::memcpy(&low, &int_ptr, sizeof(low));
+        return low;
+    }
+
+    EXPORT int get_high_int_EA(void* object){
+        wsm_external_array_t *wsm_array = qtable_external_arrays.at(object);
+        uint64_t int_ptr = reinterpret_cast<uint64_t>(wsm_array) >> 32;
+        int high;
+        std::memcpy(&high, &int_ptr, sizeof(high));
+        return high;
+    }
+
+    EXPORT void set_array_data(void* object, int table_id){
+        // Build representation of qtable sutiable for WSM and ROS message
+        QTable* qtable = static_cast<QTable*>(object);
+        const std::size_t state_count = qtable->state_settings.size();
+        wsm_external_array_t *wsm_array = qtable_external_arrays.at(object);
+        int32_t *data = static_cast<int32_t*>(wsm_array->a);
+        const std::size_t &size = wsm_array->s;
+        const std::size_t required_size = get_QTable_data_size(object);
+        if (size < required_size){
+            fprintf(stderr, "Error: external wsm array to small (%d) to store qtable (%d)\n", size, required_size);
+            fflush(stderr);
+            throw std::runtime_error("Error: external wsm array to small to store qtable");
+        }
+
+        // Write table size first in data
+        *(data+0) = qtable->explored.size();
+        *(data+1) = qtable->action_count;
+        *(data+2) = qtable->state_settings.size();
+        int32_t *state_addr = data+4;
+        for (auto &stateSetting : qtable->state_settings){
+            *state_addr = std::get<0>(stateSetting);
+            state_addr++;
+        }
+
+        // Write table values
+        std::size_t i = 1;
+        for (auto &e : qtable->explored){
+            // Extract values
+            QTable::State state = e.first;
+            unsigned action = state.back();
+            state.pop_back();
+            double qvalue = static_cast<double>(qtable->qtable.at(state).at(action));
+            unsigned explored_count = e.second;
+
+            // Write values
+            memcpy(data+i*(state_count+4)+0, &qvalue, sizeof(qvalue)); // Takes up 2 int32_t
+            memcpy(data+i*(state_count+4)+2, &explored_count, sizeof(explored_count));
+            memcpy(data+i*(state_count+4)+3, &action, sizeof(action));
+            std::copy(state.begin(), state.end(), data+i*(state_count+4)+4);
+            i++;
+        }
+    };
 
     EXPORT double choose_action(void* object, double* raw_state, size_t state_dimensions, double reward,
                 double learning_rate, double epsilon, double discount_factor){

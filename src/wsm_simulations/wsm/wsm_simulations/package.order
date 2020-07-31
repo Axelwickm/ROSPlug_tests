@@ -4,6 +4,3 @@ ros_inverted_pendelum_trainer
 ros_inverted_pendelum_demo
 QTable
 ros_inverted_pendelum_reward_function
-QTableSetting
-SettingConnector
-QTableSettingRecord
