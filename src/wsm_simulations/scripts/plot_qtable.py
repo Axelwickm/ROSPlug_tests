@@ -89,7 +89,7 @@ def update(qtable):
     update.im_common.set_data(np.hstack(mcommonality))
 
     # Show data and save image
-    plt.ion()
+    #plt.ion()
     plt.draw()
     plt.pause(0.0001)
     plt.savefig("./qtable_animation/"+str(count)+".jpg")

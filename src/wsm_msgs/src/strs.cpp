@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(0.5);
 
   const std::vector<std::string> str_list =
-          {"Lorem", " ipsum ", "dolor ", "sit ", "amet, ", "ius", "an ", "animalm ", "euismod."};
+          {"Lorem", " ipsum ", "dolor ", "sit ", "amet, ", "ius ", "an ", "animalm ", "euismod. "};
   std::vector<std::string> temp_str_list;
 
   int count = 0;
@@ -33,7 +33,9 @@ int main(int argc, char **argv)
     wsm_msgs::StringArray msg;
     msg.data = temp_str_list;
 
-    ROS_INFO("%d - %d", count, msg.data);
+    std::string dataStr = "";
+    for (auto s : temp_str_list){ dataStr += s; }
+    ROS_INFO("%d - %s", count, dataStr.c_str());
 
     chatter_pub.publish(msg);
 

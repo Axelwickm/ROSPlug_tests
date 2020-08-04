@@ -23,6 +23,7 @@ extern "C" {
     EXPORT void QTableDestructor(void* object);
     EXPORT void save(void* object, const char* filepath_chars);
     EXPORT void allocate_EA(void* object);
+    EXPORT void deallocate_EA(void* object); // Deallocates all associated EAs
     EXPORT int get_QTable_data_size(void* object);
     EXPORT int get_low_int_EA(void* object);
     EXPORT int get_high_int_EA(void* object);

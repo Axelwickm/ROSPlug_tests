@@ -17,11 +17,11 @@
 #endif
 
 typedef struct {
-    void* a;
-    std::size_t s;
+    void* a = nullptr;
+    std::size_t s = 0;
 } wsm_external_array_t;
 
-std::map<void*, wsm_external_array_t*> qtable_external_arrays;
+std::map<QTable*, wsm_external_array_t*> qtable_external_arrays;
 
 #include <chrono>
 #include <thread>
@@ -58,6 +58,7 @@ extern "C" {
     }
 
     EXPORT void QTableDestructor(void* object){
+        deallocate_EA(object);
         delete static_cast<QTable*>(object);
     }
 
@@ -82,13 +83,27 @@ extern "C" {
             wsm_array->a = ea_memory;
             wsm_array->s = s;
             printf("Allocated external array for qtable %p, allocated block %p, size %d\n",
-                   wsm_array, wsm_array->a, wsm_array->s);
-            qtable_external_arrays.insert(std::make_pair(object, wsm_array));
+                   wsm_array, wsm_array->a, wsm_array->s); fflush(stdout);
+            qtable_external_arrays.insert(std::make_pair(qtable, wsm_array));
         } catch (const std::exception e){
             fprintf(stderr, "Allocate external array failed: %s", e.what());
             fflush(stderr);
             throw;
         }
+    }
+
+    EXPORT void deallocate_EA(void* object){
+        QTable* qtable = static_cast<QTable*>(object);
+        if (qtable_external_arrays.find(qtable) == qtable_external_arrays.end()){
+            return;
+        }
+        wsm_external_array_t* wsm_array = qtable_external_arrays.at(qtable);
+        if (wsm_array->a){
+            ROSPLUG_FREE(wsm_array->a);
+        }
+        ROSPLUG_FREE(wsm_array);
+        printf("Deallocated external array for qtable %p, allocated block %p, size %d\n",
+                   wsm_array, wsm_array->a, wsm_array->s); fflush(stdout);
     }
 
     EXPORT int get_QTable_data_size(void* object){
@@ -97,7 +112,8 @@ extern "C" {
     }
 
     EXPORT int get_low_int_EA(void* object){
-        wsm_external_array_t *wsm_array = qtable_external_arrays.at(object);
+        QTable* qtable = static_cast<QTable*>(object);
+        wsm_external_array_t *wsm_array = qtable_external_arrays.at(qtable);
         uint64_t int_ptr = reinterpret_cast<uint64_t>(wsm_array);
         int low;
         std::memcpy(&low, &int_ptr, sizeof(low));
@@ -105,7 +121,8 @@ extern "C" {
     }
 
     EXPORT int get_high_int_EA(void* object){
-        wsm_external_array_t *wsm_array = qtable_external_arrays.at(object);
+        QTable* qtable = static_cast<QTable*>(object);
+        wsm_external_array_t *wsm_array = qtable_external_arrays.at(qtable);
         uint64_t int_ptr = reinterpret_cast<uint64_t>(wsm_array) >> 32;
         int high;
         std::memcpy(&high, &int_ptr, sizeof(high));
@@ -116,7 +133,7 @@ extern "C" {
         // Build representation of qtable sutiable for WSM and ROS message
         QTable* qtable = static_cast<QTable*>(object);
         const std::size_t state_count = qtable->state_settings.size();
-        wsm_external_array_t *wsm_array = qtable_external_arrays.at(object);
+        wsm_external_array_t *wsm_array = qtable_external_arrays.at(qtable);
         const std::size_t required_size = get_QTable_data_size(object);
 
         if (wsm_array->s != required_size){

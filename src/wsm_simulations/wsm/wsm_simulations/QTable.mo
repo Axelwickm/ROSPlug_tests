@@ -119,6 +119,7 @@ algorithm
     allocate_EA(qtable);
     ptrs[1] := get_low_int_EA(qtable);
     ptrs[2] := get_high_int_EA(qtable);
+    // External array is associated to qtable, and will be destructed when it is
     eaConnector.table_id := ROSPlug.Internal.ExternalFunctions.getTableId(ROSPlug.Internal.ExternalFunctions.ExternalArray.constructor(ptrs));
   end when;
   when {trigger} then
