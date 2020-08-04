@@ -117,14 +117,14 @@ extern "C" {
         QTable* qtable = static_cast<QTable*>(object);
         const std::size_t state_count = qtable->state_settings.size();
         wsm_external_array_t *wsm_array = qtable_external_arrays.at(object);
-        int32_t *data = static_cast<int32_t*>(wsm_array->a);
-        const std::size_t &size = wsm_array->s;
         const std::size_t required_size = get_QTable_data_size(object);
-        if (size < required_size){
-            fprintf(stderr, "Error: external wsm array to small (%d) to store qtable (%d)\n", size, required_size);
-            fflush(stderr);
-            throw std::runtime_error("Error: external wsm array to small to store qtable");
+
+        if (wsm_array->s != required_size){
+            ROSPLUG_FREE(wsm_array->a);
+            wsm_array->a = ROSPLUG_ALLOC(required_size);
+            wsm_array->s = required_size;
         }
+        int32_t *data = static_cast<int32_t*>(wsm_array->a);
 
         // Write table size first in data
         *(data+0) = qtable->explored.size();

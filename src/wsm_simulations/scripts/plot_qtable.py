@@ -13,7 +13,6 @@ def update(qtable):
     data = qtable.data
     if len(data) == 0:
         return
-
     # Get settings
     explored_states = data[0] # State + action
     action_count = data[1]

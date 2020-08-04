@@ -53,6 +53,7 @@ add_message_files(
   City.msg
   Cities.msg
   PublishTest.msg
+  StringArray.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -232,5 +233,8 @@ target_link_libraries(summed_sinusoids ${catkin_LIBRARIES})
 
 add_executable(precompiled src/precompiled.cpp)
 target_link_libraries(precompiled ${catkin_LIBRARIES})
+
+add_executable(strs src/strs.cpp)
+target_link_libraries(strs ${catkin_LIBRARIES})
 
 
