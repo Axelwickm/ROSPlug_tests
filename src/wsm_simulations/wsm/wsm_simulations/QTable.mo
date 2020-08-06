@@ -11,27 +11,31 @@ model QTable
   Modelica.Blocks.Interfaces.RealInput learning_rate annotation(Placement(visible = true, transformation(origin = {-150, 8.366}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-50, -100}, extent = {{-15, -15}, {15, 15}}, rotation = -270)));
   Modelica.Blocks.Interfaces.RealInput epsilon annotation(Placement(visible = true, transformation(origin = {-150, -25}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {0, -100}, extent = {{-15, -15}, {15, 15}}, rotation = -270)));
   Modelica.Blocks.Interfaces.RealInput discount_factor annotation(Placement(visible = true, transformation(origin = {-150, -52.799}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {50, -100}, extent = {{-15, -15}, {15, 15}}, rotation = -270)));
-  Modelica.Blocks.Interfaces.RealInput state[stateDims] annotation(Placement(visible = true, transformation(origin = {-17.522, 0}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-90, 50}, extent = {{-20, -20}, {20, 20}}, rotation = 0)));
+  Modelica.Blocks.Interfaces.RealInput state[stateDims] annotation(Placement(visible = true, transformation(origin = {-90, 40}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-90, 50}, extent = {{-20, -20}, {20, 20}}, rotation = 0)));
   Modelica.Blocks.Interfaces.RealInput reward annotation(Placement(visible = true, transformation(origin = {-150, 38.107}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-50, 100}, extent = {{-20, -20}, {20, 20}}, rotation = -90)));
-  discrete Modelica.Blocks.Interfaces.RealOutput action annotation(Placement(visible = true, transformation(origin = {45, 0}, extent = {{-10, -10}, {10, 10}}, rotation = 0), iconTransformation(origin = {105, 0}, extent = {{-15, -15}, {15, 15}}, rotation = 0)));
+  discrete Modelica.Blocks.Interfaces.RealOutput action annotation(Placement(visible = true, transformation(origin = {-32.165, 40}, extent = {{-10, -10}, {10, 10}}, rotation = 0), iconTransformation(origin = {105, 0}, extent = {{-15, -15}, {15, 15}}, rotation = 0)));
   Modelica.Blocks.Interfaces.BooleanInput trigger annotation(Placement(visible = true, transformation(origin = {-150, 63.458}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-90, 0}, extent = {{-20, -20}, {20, 20}}, rotation = 0)));
   Modelica.Blocks.Interfaces.BooleanInput reset if useResetPort "If simulation resets and the qtable shouldn't update from the past time-step." annotation(Placement(visible = true, transformation(origin = {-150, -75}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-90, -50}, extent = {{-20, -20}, {20, 20}}, rotation = 0)));
-  QTableOBJ qtable = QTableOBJ.constructor(if not loadModel then "" else Modelica.Utilities.Files.loadResource(modelURI));
-  ROSPlug.Internal.Interfaces.ExternalArrayConnector eaConnector if useDataPort annotation(Placement(visible = true, transformation(origin = {-45, -3.823}, extent = {{-10, -10}, {10, 10}}, rotation = 0), iconTransformation(origin = {24.114, 104.114}, extent = {{-15.886, -15.886}, {15.886, 15.886}}, rotation = 0)));
-  Modelica.Blocks.Interfaces.BooleanInput getDataTrigger if useDataPort annotation(Placement(visible = true, transformation(origin = {60, 99}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {50, 111.731}, extent = {{-11.391, -11.391}, {11.391, 11.391}}, rotation = -161.577)));
+  ROSPlug.Internal.Interfaces.ExternalArrayConnector eaConnector if useDataPort annotation(Placement(visible = true, transformation(origin = {-55, 40}, extent = {{-10, -10}, {10, 10}}, rotation = 0), iconTransformation(origin = {24.114, 104.114}, extent = {{-15.886, -15.886}, {15.886, 15.886}}, rotation = 0)));
+  Modelica.Blocks.Interfaces.BooleanInput getDataTrigger if useDataPort annotation(Placement(visible = true, transformation(origin = {-15, 40}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {50, 111.731}, extent = {{-11.391, -11.391}, {11.391, 11.391}}, rotation = -161.577)));
   parameter Real stateRanges[stateDims, 2];
   parameter Integer stateCounts[stateDims];
   parameter Real actionRange[2] = {0, 1};
   parameter Integer actionsCount = 5;
+  QTableOBJ qtable = QTableOBJ.constructor(if not loadModel then "" else Modelica.Utilities.Files.loadResource(modelURI), stateRanges, stateCounts, actionRange, actionsCount);
 
   class QTableOBJ
     extends ExternalObject;
 
     function constructor
       input String filepath;
+      input Real stateRanges[:, 2];
+      input Integer stateCounts[:];
+      input Real actionRange[2];
+      input Integer actionsCount;
       output QTableOBJ qtable;
     
-      external "C" qtable = QTableConstructor(filepath) annotation(Include = "#include \"WSM_QTable.h\"", Library = "wsm_simulations_QTable", IncludeDirectory = "modelica://wsm_simulations/../../include/wsm_simulations", LibraryDirectory = "modelica://wsm_simulations/../../../../install/lib/");
+      external "C" qtable = QTableConstructor(filepath, stateRanges, stateCounts, size(stateRanges, 1), actionRange, actionsCount) annotation(Include = "#include \"WSM_QTable.h\"", Library = "wsm_simulations_QTable", IncludeDirectory = "modelica://wsm_simulations/../../include/wsm_simulations", LibraryDirectory = "modelica://wsm_simulations/../../../../install/lib/");
     end constructor;
 
     function destructor

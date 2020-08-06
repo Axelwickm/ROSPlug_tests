@@ -27,17 +27,21 @@ std::map<QTable*, wsm_external_array_t*> qtable_external_arrays;
 #include <thread>
 
 extern "C" {
-    EXPORT void* QTableConstructor(const char* filepath_chars){
+    EXPORT void* QTableConstructor(const char* filepath_chars, double* state_ranges, int* state_counts, size_t state_dims,
+                                    double* action_range, int action_count){
         const std::string filepath(filepath_chars);
         //QTable::ActionsSettings action_setting = {wsm_action_setting.count, wsm_action_setting.minimum, wsm_action_setting.maximum}; FIXME
 
+        QTable::StateSettings state_settings = {};
+        for (std::size_t i = 0; i < state_dims; i++){
+            state_settings.push_back(std::make_tuple(
+                *(state_counts+i),
+                *(state_ranges+2*i+0), *(state_ranges+2*i+1)
+            ));
+        }
 
-        QTable::StateSettings state_settings = {
-                {9,  -2, 2},         // Velocity
-                {17, -15, 15},       // AngularVelocity
-                {23, -M_PI, M_PI},   // Angle
-            };
-        QTable::ActionsSettings action_setting = {7, -18, 18};
+
+        QTable::ActionsSettings action_setting = {action_count, *(action_range+0), *(action_range+1)};
         QTable* qtable;
         if (filepath.empty()){
             printf("Create new table\n"); fflush(stdout);

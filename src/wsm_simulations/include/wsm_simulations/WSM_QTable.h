@@ -19,7 +19,8 @@
 
 extern "C" {
     //EXPORT void* QTableConstructor(WSM_StateSettings* wsm_action_setting); // FIXME
-    EXPORT void* QTableConstructor(const char* filepath);
+    EXPORT void* QTableConstructor(const char* filepath, double* state_ranges, int* state_counts, size_t state_dims,
+                                   double* action_range, int action_count);
     EXPORT void QTableDestructor(void* object);
     EXPORT void save(void* object, const char* filepath_chars);
     EXPORT void allocate_EA(void* object);
