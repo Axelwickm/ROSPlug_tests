@@ -1,3 +1,3 @@
 string name
-int64 population
+int32 population
 bool by_sea
